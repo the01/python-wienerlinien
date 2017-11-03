@@ -9,9 +9,8 @@ __email__ = "jungflor@gmail.com"
 __copyright__ = "Copyright (C) 2017, Florian JUNG"
 __license__ = "MIT"
 __version__ = "0.1.0"
-__date__ = "2017-11-02"
+__date__ = "2017-11-03"
 # Created: 2017-11-02 00:10
-
 
 import datetime
 
@@ -24,30 +23,20 @@ from flotils import Loadable
 from floscraper import WebScraper
 from requests.compat import urljoin
 from dateutil.parser import parse as dt_parse
-from dateutil import tz
-from dateutil.tz import tzutc
 
-from wl.models import ItdRequest, ItdResponse, ItdDMResponse,\
+from models import ItdRequest, ItdResponse, ItdDMResponse,\
     Line, Departure, Stop
 from wl.errors import RequestException
+from .utils import local_to_utc, utc_to_local
 
 
-def local_to_utc(dt):
-    dt = dt.replace(tzinfo=tz.gettz("Europe/Vienna")).astimezone(tzutc())
-    return dt.replace(tzinfo=None)
-
-
-def utc_to_local(dt):
-    dt = dt.replace(tzinfo=tzutc()).astimezone(tz.gettz("Europe/Vienna"))
-    return dt.replace(tzinfo=None)
-
-
-class WL(Loadable):
+class WLRouting(Loadable):
+    """ Wienerlinien routing API """
 
     def __init__(self, settings=None):
         if settings is None:
             settings = {}
-        super(WL, self).__init__(settings)
+        super(WLRouting, self).__init__(settings)
         self.base_url = "https://www.wienerlinien.at/ogd_routing/"
         self.session = WebScraper(settings.get('web', {}))
 
@@ -119,7 +108,11 @@ class WL(Loadable):
             )
             raise RequestException("Request failed")
         try:
-            res = self._parse_response(resp.html)
+            data = resp.raw
+            if not data:
+                self.warning("Defaulting to decoded response")
+                data = resp.html
+            res = self._parse_response(data)
         except:
             self.exception(
                 "Failed to parse {}:\n{}".format(url, req.to_get_params())
@@ -350,5 +343,22 @@ class WL(Loadable):
             dt = utc_to_local(dt)
             req.params.append(("itdDate",dt.strftime("%Y%m%d")))
             req.params.append(("itdTime", dt.strftime("%H%M")))
+        res = self._make_req_dm(req)
+        return res
+
+    def dm_search_select(self, location, dt=None):
+        req = ItdRequest()
+        req.session_id = 0
+        req.params.update({
+            'locationServerActive': 1,
+            'type_dm': "any",
+            'name_dm': location,
+            'limit': 20,
+            'dmLineSelectionAll': 1
+        })
+        if dt:
+            dt = utc_to_local(dt)
+            req.params['itdDate'] = dt.strftime("%Y%m%d")
+            req.params['itdTime'] = dt.strftime("%H%M")
         res = self._make_req_dm(req)
         return res

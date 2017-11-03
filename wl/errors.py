@@ -29,3 +29,7 @@ class WL_Exception(Exception):
 
 class RequestException(WL_Exception):
     """ Error while making request """
+
+
+class ProtocolViolation(Exception):
+    """ Response did not follow documentation """
