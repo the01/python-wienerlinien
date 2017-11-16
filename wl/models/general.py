@@ -45,7 +45,20 @@ class FromToDictBase(object):
                 res[key] = value
         return res
 
-class Request(FromToDictBase):
+
+class PrintableBase(object):
+
+    def __str__(self):
+        return "<{}>({})".format(self.__class__.__name__, format_vars(self))
+
+    def __unicode__(self):
+        return self.__str__()
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class Request(FromToDictBase, PrintableBase):
 
     def __init__(self):
         super(Request, self).__init__()
@@ -64,77 +77,73 @@ class Request(FromToDictBase):
         res.update(self.params)
         return res
 
-    def __str__(self):
-        return "<Request>({})".format(format_vars(self))
 
-    def __unicode__(self):
-        return self.__str__()
-
-    def __repr__(self):
-        return self.__str__()
-
-
-class Line(FromToDictBase):
+class Response(FromToDictBase, PrintableBase):
 
     def __init__(self):
-        super(Line, self).__init__()
-        self.index = None
-        self.key = None
-        self.code = None
-        self.number = None
-        self.symbol = None
-        self.direction = None
-        self.realtime = None
-        self.selected = None
-        self.network = None
-        self.line = None
-        self.description = None
-
-    def __str__(self):
-        return "<Line>({})".format(format_vars(self))
-
-    def __repr__(self):
-        return self.__str__()
+        super(Response, self).__init__()
+        self.id = None
+        self.stops = None
+        """ :type : list[wl.models.general.Stop] """
+        self.departures = None
+        """ :type : list[wl.models.general.Departure] """
 
 
-class Departure(FromToDictBase):
+class Location(FromToDictBase, PrintableBase):
 
-    def __init__(self):
-        super(Departure, self).__init__()
-        self.stop_id = None
-        self.stop_name = None
-        self.platform = None
-        self.platform_name = None
-        self.datetime = None
-        self.countdown = None
-        self.line = None
-
-    @classmethod
-    def from_dict(cls, d):
-        new = super(cls, cls).from_dict(d)
-        if new.line:
-            new.line = Line.from_dict(new.line)
-        return new
-
-    def __str__(self):
-        return "<Departure>({})".format(format_vars(self))
-
-    def __repr__(self):
-        return self.__str__()
+    def __init__(self, latitude=None, longitude=None):
+        super(Location, self).__init__()
+        self.latitude = latitude
+        self.longitude = longitude
 
 
-class Stop(FromToDictBase):
+class Stop(PrintableBase, FromToDictBase):
 
     def __init__(self):
         super(Stop, self).__init__()
-        self.stop_id = None
-        self.value = None
-        self.distance = None
-        self.distance_time = None
+        # TODO: value for select
+        self.id = None
+        """ DIVA / routing.stop_id """
         self.name = None
+        """ routing.name """
+        #self.rbl = None
+        """ realtime.rbl """
+        self.distance = None
+        """ routing.distance """
+        self.distance_time = None
+        """ routing.distance_time """
+        self.location = None
+        """ :type : wl.models.general.Location """
 
-    def __str__(self):
-        return "<Stop>({})".format(format_vars(self))
+    @classmethod
+    def from_dict(cls, d):
+        new = super(Stop, Stop).from_dict(d)
+        if new.location:
+            new.location = Location.from_dict(new.location)
+        return new
 
-    def __repr__(self):
-        return self.__str__()
+
+class Line(PrintableBase, FromToDictBase):
+
+    def __init__(self):
+        super(Line, self).__init__()
+        self.id = None
+        """ routing.index(5:0) """
+        self.name = None
+        """ routing.symbol(40) """
+        self.direction = None
+        """ routing.direction(Pötzleinsdorf) """
+        self.realtime = None
+        """ routing.realtime(1) """
+
+
+class Departure(PrintableBase, FromToDictBase):
+
+    def __init__(self):
+        self.stop_id = None
+        """ routing.stop_id """
+        self.stop_name = None
+        self.line_name = None
+        self.datetime = None
+        self.countdown = None
+        self.direction = None

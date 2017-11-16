@@ -24,9 +24,9 @@ from floscraper import WebScraper
 from requests.compat import urljoin
 from dateutil.parser import parse as dt_parse
 
-from models import ItdRequest, ItdResponse, ItdDMResponse,\
+from .models.routing import ItdRequest, ItdResponse, ItdDMResponse,\
     Line, Departure, Stop
-from wl.errors import RequestException
+from .errors import RequestException
 from .utils import local_to_utc, utc_to_local
 
 
@@ -51,7 +51,7 @@ class WLRouting(Loadable):
         :param data:
         :type data:
         :return:
-        :rtype: wl.models.ItdResponse
+        :rtype: wl.models.routing.ItdResponse
         """
         try:
             root = etree.fromstring(data)
@@ -95,9 +95,9 @@ class WLRouting(Loadable):
         :param url_part: What service of routing api to use
         :type url_part: str | unicode
         :param req:
-        :type req: wl.models.ItdRequest
+        :type req: wl.models.routing.ItdRequest
         :return: Response root element
-        :rtype: wl.models.ItdResponse
+        :rtype: wl.models.routing.ItdResponse
         """
         url = urljoin(self.base_url, url_part)
         try:
@@ -108,6 +108,8 @@ class WLRouting(Loadable):
             )
             raise RequestException("Request failed")
         try:
+            if resp.html and resp.html.startswith("<!DOCTYPE HTML"):
+                raise RequestException("API send plain html")
             data = resp.raw
             if not data:
                 self.warning("Defaulting to decoded response")
@@ -126,10 +128,11 @@ class WLRouting(Loadable):
         :param root:
         :type root: xml.etree.ElementTree.Element
         :return:
-        :rtype: wl.models.Line
+        :rtype: wl.models.routing.Line
         """
         if root.tag != "itdServingLine":
             raise ValueError("Expected line - {}".format(root.tag))
+        #self.debug("\n" + etree.tostring(root, pretty_print=True))
         line_dict = root.attrib
         for ele in root:
             if ele.tag == "motDivaParams":
@@ -137,6 +140,7 @@ class WLRouting(Loadable):
                 line_dict['line'] = ele.attrib.get('line')
             elif ele.tag == "itdRouteDescText":
                 line_dict['description'] = ele.text
+        #self.debug(line_dict)
         return Line.from_dict(line_dict)
 
     def _parse_lines(self, root):
@@ -145,10 +149,11 @@ class WLRouting(Loadable):
         :param root:
         :type root: xml.etree.ElementTree.Element
         :return:
-        :rtype: list[wl.models.Line]
+        :rtype: list[wl.models.routing.Line]
         """
         if root.tag != "itdServingLines":
             raise ValueError("Expected lines - {}".format(root.tag))
+
         lines = []
         for ele in root:
             lines.append(self._parse_line(ele))
@@ -183,7 +188,7 @@ class WLRouting(Loadable):
         :param root:
         :type root: xml.etree.ElementTree.Element
         :return:
-        :rtype: wl.models.Depature
+        :rtype: wl.models.routing.Depature
         """
         if root.tag != "itdDeparture":
             raise ValueError("Expected departure - {}".format(root.tag))
@@ -210,7 +215,7 @@ class WLRouting(Loadable):
         :param root:
         :type root: xml.etree.ElementTree.Element
         :return:
-        :rtype: list[wl.models.Depature]
+        :rtype: list[wl.models.routing.Depature]
         """
         if root.tag != "itdDepartureList":
             raise ValueError("Expected departures - {}".format(root.tag))
@@ -225,7 +230,7 @@ class WLRouting(Loadable):
         :param root:
         :type root: xml.etree.ElementTree.Element
         :return:
-        :rtype: wl.models.Stop
+        :rtype: wl.models.routing.Stop
         """
         if root.tag != "itdOdvAssignedStop":
             raise ValueError("Expected stop - {}".format(root.tag))
@@ -244,7 +249,7 @@ class WLRouting(Loadable):
         :param root:
         :type root: xml.etree.ElementTree.Element
         :return:
-        :rtype: list[wl.models.Stop]
+        :rtype: list[wl.models.routing.Stop]
         """
         if root.tag != "itdOdvAssignedStops":
             raise ValueError("Expected stops - {}".format(root.tag))
@@ -253,30 +258,51 @@ class WLRouting(Loadable):
             stops.append(self._parse_stop(ele))
         return stops
 
+    def _parse_odv_name_elem(self, root):
+        if root.tag != "odvNameElem":
+            raise ValueError("Expected odv name elem - {}".format(root.tag))
+        res = Stop()
+        res.stop_id = root.attrib.get('id', root.attrib.get('stopID'))
+        res.name = root.text
+        return res
+
+    def _parse_odv_name(self, root):
+        if root.tag != "itdOdvName":
+            raise ValueError("Expected odv name - {}".format(root.tag))
+        stops = []
+        for ele in root:
+            if ele.tag == "odvNameElem":
+                stops.append(self._parse_odv_name_elem(ele))
+        return stops
+
     def _parse_itd_odv(self, root, res):
         """
 
         :param root:
         :type root: xml.etree.ElementTree.Element
         :param res:
-        :type res: wl.models.ItdDMResponse
+        :type res: wl.models.routing.ItdDMResponse
         :return:
-        :rtype: wl.models.ItdDMResponse
+        :rtype: wl.models.routing.ItdDMResponse
         """
         if root.tag != "itdOdv":
             raise ValueError("Expected odv - {}".format(root.tag))
         xml_stops = root.find("itdOdvAssignedStops")
-        if xml_stops:
+        if xml_stops is not None:
             res.stops = self._parse_stops(xml_stops)
+        else:
+            # No stops -> select
+            xml_names = root.find("itdOdvName")
+            res.stops = self._parse_odv_name(xml_names)
         return res
 
     def _parse_response_dm(self, resp):
         """
 
         :param resp:
-        :type resp: wl.models.ItdResponse
+        :type resp: wl.models.routing.ItdResponse
         :return:
-        :rtype: wl.models.ItdDMResponse
+        :rtype: wl.models.routing.ItdDMResponse
         """
         if not resp.children or len(resp.children) != 0:
             ValueError("Invalid Subtype")
@@ -302,22 +328,23 @@ class WLRouting(Loadable):
         """
 
         :param req:
-        :type req: wl.models.ItdRequest
+        :type req: wl.models.routing.ItdRequest
         :return:
-        :rtype:
+        :rtype: wl.models.routing.ItdDMResponse
         """
         itd_resp = self._make_req("XML_DM_REQUEST", req)
         #self.debug("\n" + etree.tostring(itd_resp.children[0], pretty_print=True))
         return self._parse_response_dm(itd_resp)
 
-    def dm_search(self, location, dt=None):
+    def dm_search(self, location, dt=None, limit=40):
         req = ItdRequest()
         req.session_id = 0
         req.params.update({
             'locationServerActive': 1,
+            'lsShowTrainsExplicit': 1,
             'type_dm': "any",
             'name_dm': location,
-            'limit': 20
+            'limit': limit
         })
         if dt:
             dt = utc_to_local(dt)
@@ -326,12 +353,17 @@ class WLRouting(Loadable):
         res = self._make_req_dm(req)
         return res
 
-    def dm_select(self, resp, lines=None, dt=None):
+    def dm_select(self, resp, lines=None, dt=None, stops=None, limit=40):
         req = ItdRequest.from_dict(resp.to_dict())
-        """ :type : ItdRequest """
+        """ :type : wl.models.routing.ItdRequest """
+        req.params = []
+        if stops:
+            req.params.append(("type_dm", "stopID"))
+            for stop_id in stops:
+                req.params.append(("name_dm", stop_id))
 
         if lines is None:
-            req.params = [("dmLineSelectionAll", 1)]
+            req.params.append(("dmLineSelectionAll", 1))
         else:
             req.params = []
             for line in lines:
@@ -343,17 +375,19 @@ class WLRouting(Loadable):
             dt = utc_to_local(dt)
             req.params.append(("itdDate",dt.strftime("%Y%m%d")))
             req.params.append(("itdTime", dt.strftime("%H%M")))
+        req.params.append(('limit', limit))
         res = self._make_req_dm(req)
         return res
 
-    def dm_search_select(self, location, dt=None):
+    def dm_search_select(self, location, dt=None, limit=40):
         req = ItdRequest()
         req.session_id = 0
         req.params.update({
             'locationServerActive': 1,
+            'lsShowTrainsExplicit': 1,
             'type_dm': "any",
             'name_dm': location,
-            'limit': 20,
+            'limit': limit,
             'dmLineSelectionAll': 1
         })
         if dt:

@@ -12,12 +12,11 @@ __version__ = "0.1.0"
 __date__ = "2017-11-03"
 # Created: 2017-11-03 12:00
 
-from .general import FromToDictBase, format_vars
+from .general import FromToDictBase, PrintableBase
 
 
-class RTResponse(FromToDictBase):
+class RTResponse(FromToDictBase, PrintableBase):
     CODE_OK = 1
-
 
     def __init__(self):
         super(RTResponse, self).__init__()
@@ -28,17 +27,8 @@ class RTResponse(FromToDictBase):
         self.monitors = None
         """ :type : list[wl.models.realtime.Monitor] """
 
-    def __str__(self):
-        return "<RTResponse>({})".format(format_vars(self))
 
-    def __unicode__(self):
-        return self.__str__()
-
-    def __repr__(self):
-        return self.__str__()
-
-
-class Monitor(FromToDictBase):
+class Monitor(FromToDictBase, PrintableBase):
 
     def __init__(self):
         super(Monitor, self).__init__()
@@ -53,14 +43,8 @@ class Monitor(FromToDictBase):
             return None
         return self.stop.title
 
-    def __str__(self):
-        return "<Monitor>({})".format(format_vars(self))
 
-    def __repr__(self):
-        return self.__str__()
-
-
-class Stop(FromToDictBase):
+class Stop(FromToDictBase, PrintableBase):
 
     def __init__(self):
         super(Stop, self).__init__()
@@ -77,14 +61,8 @@ class Stop(FromToDictBase):
         self.rbl = None
         self.gate = None
 
-    def __str__(self):
-        return "<Stop>({})".format(format_vars(self))
 
-    def __repr__(self):
-        return self.__str__()
-
-
-class Line(FromToDictBase):
+class Line(FromToDictBase, PrintableBase):
     def __init__(self):
         super(Line, self).__init__()
         self.name = None
@@ -98,14 +76,8 @@ class Line(FromToDictBase):
         self.type = None
         self.id = None
 
-    def __str__(self):
-        return "<Line>({})".format(format_vars(self))
 
-    def __repr__(self):
-        return self.__str__()
-
-
-class Departure(FromToDictBase):
+class Departure(FromToDictBase, PrintableBase):
     def __init__(self):
         super(Departure, self).__init__()
         self.planned = None
@@ -116,9 +88,3 @@ class Departure(FromToDictBase):
         """ :type : None | int """
         self.vehicle = None
         """ :type : dict """
-
-    def __str__(self):
-        return "<Departure>({})".format(format_vars(self))
-
-    def __repr__(self):
-        return self.__str__()

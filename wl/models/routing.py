@@ -12,7 +12,7 @@ __version__ = "0.1.0"
 __date__ = "2017-11-03"
 # Created: 2017-11-03 12:00
 
-from .general import format_vars, Request
+from .general import Request, FromToDictBase, PrintableBase
 
 
 class ItdBase(Request):
@@ -50,8 +50,6 @@ class ItdBase(Request):
         res.params = ele.params
         return res
 
-    def __str__(self):
-        return "<ItdBase>({})".format(format_vars(self))
 
 
 class ItdRequest(ItdBase):
@@ -97,20 +95,68 @@ class ItdResponse(ItdBase):
         self.children = None
         """ :type : list[xml.etree.ElementTree.Element] """
 
-    def __str__(self):
-        return "<ItdResponse>({})".format(format_vars(self))
-
 
 class ItdDMResponse(ItdResponse):
 
     def __init__(self):
         super(ItdDMResponse, self).__init__()
         self.lines = None
-        """ :type : None | list[wl.models.Line] """
+        """ :type : None | list[wl.models.routing.Line] """
         self.places = None
         self.departures = None
+        """ :type : None | list[wl.models.routing.Departure] """
         self.stops = None
+        """ :type : None | list[wl.models.routing.Stop] """
+        self.lines = None
+        """ :type : None | list[wl.models.routing.Line] """
         self.datetime = None
 
-    def __str__(self):
-        return "<ItdDMResponse>({})".format(format_vars(self))
+
+class Line(FromToDictBase, PrintableBase):
+
+    def __init__(self):
+        super(Line, self).__init__()
+        self.index = None
+        self.key = None
+        self.code = None
+        self.number = None
+        self.symbol = None
+        self.direction = None
+        self.realtime = None
+        self.selected = None
+        self.network = None
+        self.line = None
+        self.description = None
+
+
+class Departure(FromToDictBase, PrintableBase):
+
+    def __init__(self):
+        super(Departure, self).__init__()
+        self.stop_id = None
+        self.stop_name = None
+        self.platform = None
+        self.platform_name = None
+        self.datetime = None
+        self.countdown = None
+        self.line = None
+        """ :type : wl.models.routing.Line """
+
+    @classmethod
+    def from_dict(cls, d):
+        new = super(cls, cls).from_dict(d)
+        if new.line:
+            new.line = Line.from_dict(new.line)
+        return new
+
+
+class Stop(FromToDictBase, PrintableBase):
+
+    def __init__(self):
+        super(Stop, self).__init__()
+        self.stop_id = None
+        self.value = None
+        self.distance = None
+        self.distance_time = None
+        self.name = None
+

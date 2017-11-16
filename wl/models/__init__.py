@@ -18,7 +18,7 @@ from .routing import *
 
 
 __all__ = [
-    "Line", "Departure", "Stop", "Request",
+    "Request",
     "ItdDMResponse", "ItdRequest", "ItdResponse",
     "RTResponse"
 ]
