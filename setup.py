@@ -20,6 +20,7 @@ except ImportError:
 import sys
 import os
 import re
+from setuptools import find_packages
 
 
 if sys.argv[-1] == "build":
@@ -67,6 +68,7 @@ setup(
     url="https://github.com/the01/python-wienerlinien",
     packages=[
         "wl",
+        "wl.models",
     ],
     install_requires=requirements,
     license="MIT License",
