@@ -70,6 +70,8 @@ class ItdRequest(ItdBase):
         res = {}
         if self.session_id is not None:
             res['sessionID'] = self.session_id
+        else:
+            res['sessionID'] = "0"
         if self.request_id is not None:
             res['requestID'] = self.request_id
         if self.language is not None:

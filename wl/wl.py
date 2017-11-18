@@ -9,7 +9,7 @@ __email__ = "jungflor@gmail.com"
 __copyright__ = "Copyright (C) 2017, Florian JUNG"
 __license__ = "MIT"
 __version__ = "0.1.0"
-__date__ = "2017-11-07"
+__date__ = "2017-11-18"
 # Created: 2017-11-07 01:34
 
 from flotils import Loadable
@@ -19,6 +19,7 @@ from .routing import WLRouting
 from .db import WLDatabase
 from .models.general import Response, Stop, Line, Location, Departure
 from .models.routing import ItdRequest
+from .errors import RequestException
 
 
 class WL(Loadable):
@@ -122,10 +123,17 @@ class WL(Loadable):
         if len(parts) > 1 and parts[1]:
             req.request_id = parts[1]
 
-        selected = self.routing.dm_select(
-            req, stops=stops, lines=lines, dt=dt, limit=limit
-        )
-        if stops:
+        try:
+            selected = self.routing.dm_select(
+                req, stops=stops, lines=lines, dt=dt, limit=limit
+            )
+        except RequestException:
+            req.session_id = None
+            req.request_id = None
+            selected = self.routing.dm_select(
+                req, stops=stops, lines=lines, dt=dt, limit=limit
+            )
+        if stops and not selected.departures:
             selected = self.routing.dm_select(
                 selected, limit=limit
             )
