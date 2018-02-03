@@ -6,13 +6,13 @@ from __future__ import unicode_literals
 
 __author__ = "d01"
 __email__ = "jungflor@gmail.com"
-__copyright__ = "Copyright (C) 2017, Florian JUNG"
+__copyright__ = "Copyright (C) 2017-18, Florian JUNG"
 __license__ = "MIT"
 __version__ = "0.1.0"
-__date__ = "2017-11-03"
+__date__ = "2018-02-03"
 # Created: 2017-11-03 12:00
 
-from .general import FromToDictBase, PrintableBase
+from flotils import FromToDictBase, PrintableBase
 
 
 class RTResponse(FromToDictBase, PrintableBase):

@@ -32,8 +32,8 @@ class WL(Loadable):
         self.realtime = WLRealtime(settings['realtime'])
         self.routing = WLRouting(settings.get('routing', {}))
         self.database = WLDatabase(settings.get('database', {}))
-
-        self.database.csv_load()
+        if settings.get('auto_load_csv', False):
+            self.database.csv_load()
 
     def _print(self, req):
         if req.stops:

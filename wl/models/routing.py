@@ -6,13 +6,14 @@ from __future__ import unicode_literals
 
 __author__ = "d01"
 __email__ = "jungflor@gmail.com"
-__copyright__ = "Copyright (C) 2017, Florian JUNG"
+__copyright__ = "Copyright (C) 2017-18, Florian JUNG"
 __license__ = "MIT"
 __version__ = "0.1.0"
-__date__ = "2017-11-03"
+__date__ = "2018-02-03"
 # Created: 2017-11-03 12:00
 
-from .general import Request, FromToDictBase, PrintableBase
+from flotils import FromToDictBase, PrintableBase
+from .general import Request
 
 
 class ItdBase(Request):
@@ -49,7 +50,6 @@ class ItdBase(Request):
         res.app_params = ele.app_params
         res.params = ele.params
         return res
-
 
 
 class ItdRequest(ItdBase):
